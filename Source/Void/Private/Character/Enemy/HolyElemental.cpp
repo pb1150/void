@@ -5,6 +5,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "AbilitySystem/VoidBlueprintFunctionLibrary.h"
 
 AHolyElemental::AHolyElemental()
 {
@@ -29,6 +30,12 @@ void AHolyElemental::BeginPlay()
 	Super::BeginPlay();
 
 	SpawnParticleSystemLocation = GetMesh()->GetBoneLocation(FName("root")) + FVector(0.f, 0.f, 100.f);
+}
+
+void AHolyElemental::Destroyed()
+{
+	UVoidBlueprintFunctionLibrary::SpawnDropItems(this, CharacterClass, GetActorLocation());
+	Super::Destroyed();
 }
 
 void AHolyElemental::Tick(float DeltaTime)

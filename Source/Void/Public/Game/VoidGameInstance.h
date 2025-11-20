@@ -9,6 +9,9 @@
 #include "AbilitySystem/VoidAbilitySystemComponent.h"
 #include "VoidGameInstance.generated.h"
 
+class UAudioComponent;
+class UCharacterClassInfo;
+class UAbilityInfo;
 
 /**
  * 
@@ -21,10 +24,16 @@ class VOID_API UVoidGameInstance : public UGameInstance
 public:
 	UVoidGameInstance();
 
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UCharacterClassInfo> CharacterClassInfo;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAbilityInfo> AbilitiesInfo;
+
 	/* Player Data */
 	bool IsInit = true;
 
-	int32 PlayerLevel = 1.f;
+	int32 PlayerLevel = 1;
 	int32 XP;
 
 	float Health;
@@ -47,12 +56,11 @@ public:
 	/* End Player Data */
 
 	
-	ELevelType CurrentLevelType = ELevelType::Moon;
-	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LevelInfo")
 	TObjectPtr<ULevelInfo> LevelDataAsset;
 
 	int32 CurrentLevelIndex = 0;
+	int32 LastReachedLevel = 0;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowLoadingScreen();
@@ -64,16 +72,24 @@ public:
 
 	int32 GetThisLevelMaxKilledEnemyCount();
 
+	/** 这一局游戏开始时的真实日期时间（用于存档显示） */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Runtime")
+	FDateTime StartTime;
+
 	/** 游戏运行开始时的时间（秒） */
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Runtime")
 	float GameStartTime = 0.f;
 
 	/** 获取当前总运行时间(分） */
 	UFUNCTION(BlueprintCallable, Category = "Game Runtime")
 	int32 GetTotalRuntimeToInt() const;
 
+	UPROPERTY()
+	TObjectPtr<UAudioComponent> GlobalMusicComp = nullptr;
+
 protected: 
 	virtual void Init() override;
+
 
 	
 };

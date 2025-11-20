@@ -19,6 +19,7 @@ void UOverlayWidgetController::BroadcastInitialValues()
 
 	OnHealthChanged.Broadcast(VoidAttributeSet->GetHealth());
 	OnMaxHealthChanged.Broadcast(VoidAttributeSet->GetMaxHealth());
+	OnShowLevelInfoDelegate.Broadcast(UVoidBlueprintFunctionLibrary::GetCurrentLevelInfo(this));
 }
 
 void UOverlayWidgetController::BindCallbacksToDependencies()

@@ -4,10 +4,12 @@
 #include "AbilitySystem/VoidBlueprintFunctionLibrary.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Widget.h"
+#include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/HUD/VoidHUD.h"
 #include "Player/VoidPlayerState.h"
 #include "Player/VoidPlayerController.h"
+#include "Player/VoidMainMenuController.h"
 #include "GameFramework/PlayerController.h"
 #include "AbilitySystemComponent.h"
 #include "AttributeSet.h"
@@ -33,6 +35,8 @@
 #include "AbilitySystem/Data/DropItemsInfo.h"
 #include "AbilitySystem/Data/LevelInfo.h"
 #include "Engine/AssetManager.h"
+#include "AbilitySystem/Ability/VoidAbilityBase.h"
+
 
 
 FVector2D UVoidBlueprintFunctionLibrary::GetWidgetViewportPosition(UObject* WorldContextObject, UWidget* Widget, bool bReturnCenter)
@@ -75,6 +79,15 @@ UDetailsWidgetController* UVoidBlueprintFunctionLibrary::GetDetailsWidgetControl
         }
     }
     return nullptr;
+}
+
+UChooseMenuWidgetController* UVoidBlueprintFunctionLibrary::GetChooseMenuWidgetController(UObject* WorldContextObject)
+{
+    APlayerController* PC = UGameplayStatics::GetPlayerController(WorldContextObject, 0);
+    if (PC == nullptr)  return nullptr;
+    AVoidMainMenuController* MainMenuController = Cast<AVoidMainMenuController>(PC);
+    if(MainMenuController == nullptr)  return nullptr;
+    return MainMenuController->GetChooseMenuWidgetController();
 }
 
 void UVoidBlueprintFunctionLibrary::InitializeDefaultAttributes(UObject* WorldContextObject, ECharacterClass CharacterClass, float Level, UAbilitySystemComponent* ASC)
@@ -134,6 +147,65 @@ UTexture2D* UVoidBlueprintFunctionLibrary::GetCharacterClassIconByCharacterClass
     if (ClassInfo == nullptr) return nullptr;
 
     return ClassInfo->GetCharacterDefaultInfo(CharacterClass).EnemyIcon;
+}
+
+UTexture2D* UVoidBlueprintFunctionLibrary::GetCharacterClassIconByCharacterClassFromGI(UObject* WorldContextObject, ECharacterClass CharacterClass)
+{
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr) return nullptr;
+
+    UCharacterClassInfo* ClassInfo = VoidGameInstance->CharacterClassInfo;
+    if (ClassInfo == nullptr) return nullptr;
+
+    return ClassInfo->GetCharacterDefaultInfo(CharacterClass).EnemyIcon;
+}
+
+void UVoidBlueprintFunctionLibrary::GetAbilitiesInfoFromGI(UObject* WorldContextObject, TArray<FVoidAbilityInfo>& AbilitiesInfo)
+{
+    AbilitiesInfo.Empty();
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr || VoidGameInstance->AbilitiesInfo == nullptr || VoidGameInstance->AbilitiesInfo->AbilityInfomation.IsEmpty()) return;
+
+    for (FVoidAbilityInfo Info : VoidGameInstance->AbilitiesInfo->AbilityInfomation)
+    {
+        AbilitiesInfo.AddUnique(Info);
+    }
+}
+
+void UVoidBlueprintFunctionLibrary::GetAbilitiesInfoByInputTagFromGI(UObject* WorldContextObject, TArray<FVoidAbilityInfo>& AbilitiesInfo, FGameplayTag InputTag)
+{
+    AbilitiesInfo.Empty();
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr || VoidGameInstance->AbilitiesInfo == nullptr || VoidGameInstance->AbilitiesInfo->AbilityInfomation.IsEmpty()) return;
+
+    for (FVoidAbilityInfo Info : VoidGameInstance->AbilitiesInfo->AbilityInfomation)
+    {
+        UVoidAbilityBase* Ability = NewObject<UVoidAbilityBase>(WorldContextObject, Info.AbilityClass);
+        if (Ability)
+        {
+            if (Ability->StartupInputAction.MatchesTagExact(InputTag))
+            {
+                Info.InputTag = InputTag;
+                AbilitiesInfo.AddUnique(Info);
+            }
+        }
+
+    }
+}
+
+const FLevelDefaultInfo UVoidBlueprintFunctionLibrary::GetCurrentLevelInfo(UObject* WorldContextObject)
+{
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr || VoidGameInstance->LevelDataAsset == nullptr)  return FLevelDefaultInfo();
+
+    return VoidGameInstance->LevelDataAsset->LevelDefaultList[VoidGameInstance->CurrentLevelIndex];
+}
+
+int32 UVoidBlueprintFunctionLibrary::GetLastReachedLevel(UObject* WorldContextObject)
+{
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr)  return 1.f;
+    return VoidGameInstance->LastReachedLevel;
 }
 
 bool UVoidBlueprintFunctionLibrary::IsCanHitReact(const FGameplayEffectContextHandle& EffectContextHandle)
@@ -579,23 +651,21 @@ void UVoidBlueprintFunctionLibrary::LoadNextLevel(UObject* WorldContextObject)
     if (VoidGameInstance == nullptr) return;
 
     ULevelInfo* LevelInfo = VoidGameInstance->LevelDataAsset;
-    if (!LevelInfo || LevelInfo->LevelDefaultList.Num() == 0)
+    if (!LevelInfo || LevelInfo->LevelDefaultList.Num() <= 1)
     {
-        UE_LOG(LogTemp, Warning, TEXT("No level data found!"));
+        UE_LOG(LogTemp, Warning, TEXT("Not enough levels to random pick!"));
         return;
     }
 
-    if (VoidGameInstance->CurrentLevelIndex > LevelInfo->LevelDefaultList.Num() - 2)
-    {
-        UE_LOG(LogTemp, Log, TEXT("All levels cleared!"));
-        return;
-    }
+    const int32 MaxIndex = LevelInfo->LevelDefaultList.Num() - 1;
+    const int32 RandomIndex = FMath::RandRange(1, MaxIndex);
 
-    VoidGameInstance->CurrentLevelIndex++;
+    VoidGameInstance->CurrentLevelIndex = RandomIndex;
 
     VoidGameInstance->ShowLoadingScreen();
-    const FLevelDefaultInfo& DefaultInfo = LevelInfo->LevelDefaultList[VoidGameInstance->CurrentLevelIndex];
-   
+
+    const FLevelDefaultInfo& DefaultInfo = LevelInfo->LevelDefaultList[RandomIndex];
+
     if (!DefaultInfo.LevelRef.IsValid())
     {
         FSoftObjectPath LevelPath = DefaultInfo.LevelRef.ToSoftObjectPath();
@@ -609,7 +679,6 @@ void UVoidBlueprintFunctionLibrary::LoadNextLevel(UObject* WorldContextObject)
     {
         VoidGameInstance->OnVoidLevelLoaded();
     }
-
 }
 
 void UVoidBlueprintFunctionLibrary::LoadLevelByIndex(UObject* WorldContextObject, int32 Index)
@@ -631,6 +700,12 @@ void UVoidBlueprintFunctionLibrary::LoadLevelByIndex(UObject* WorldContextObject
     VoidGameInstance->ShowLoadingScreen();
     const FLevelDefaultInfo& DefaultInfo = LevelInfo->LevelDefaultList[Index];
     VoidGameInstance->CurrentLevelIndex = Index;
+    if (Index == 0)
+    {
+        VoidGameInstance->IsInit = true;
+        VoidGameInstance->AbilitiesTag.Reset();
+        VoidGameInstance->WeaponTag = FGameplayTag();
+    }
 
     if (!DefaultInfo.LevelRef.IsValid())
     {
@@ -661,6 +736,170 @@ float UVoidBlueprintFunctionLibrary::GetAttackSpeedMultiplier(UAbilitySystemComp
     const UVoidAttributeSet* VoidAS = AbilitySystemComponent->GetSet<UVoidAttributeSet>();
     const float Multiplier = FMath::Min<float>(4.f, VoidAS->GetAttackSpeedMultiplier());
     return Multiplier;
+}
+
+void UVoidBlueprintFunctionLibrary::PlayGlobalMusic(UObject* WorldContextObject, float VolumeMultiplier, float PitchMultiplier)
+{
+    if (GetCurrentLevelInfo(WorldContextObject).CycleSound.IsEmpty()) return;
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+
+    if (VoidGameInstance->GlobalMusicComp == nullptr)
+    {
+        UWorld* World = WorldContextObject->GetWorld();
+        if (!World) return;
+
+        AActor* MusicActor = World->SpawnActor<AActor>();
+        MusicActor->SetActorHiddenInGame(true); // вўВи Actor
+
+        VoidGameInstance->GlobalMusicComp = NewObject<UAudioComponent>(MusicActor);
+        VoidGameInstance->GlobalMusicComp->bAutoActivate = false;
+        VoidGameInstance->GlobalMusicComp->bIsUISound = true; 
+        VoidGameInstance->GlobalMusicComp->RegisterComponent();  
+    }
+
+    if (VoidGameInstance->GlobalMusicComp->IsPlaying())
+    {
+        VoidGameInstance->GlobalMusicComp->FadeOut(0.5f, 0.0f);
+    }
+    TArray<USoundBase*> Sounds = GetCurrentLevelInfo(WorldContextObject).CycleSound;
+    const int32 Index = FMath::RandRange(0, Sounds.Num() - 1);
+    VoidGameInstance->GlobalMusicComp->SetSound(Sounds[Index]);
+    VoidGameInstance->GlobalMusicComp->SetVolumeMultiplier(VolumeMultiplier);
+    VoidGameInstance->GlobalMusicComp->SetPitchMultiplier(PitchMultiplier);
+    VoidGameInstance->GlobalMusicComp->FadeIn(1.0f, VolumeMultiplier);
+}
+
+void UVoidBlueprintFunctionLibrary::StopGlobalMusic(UObject* WorldContextObject)
+{
+    if (WorldContextObject == nullptr) return;
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr || VoidGameInstance->GlobalMusicComp == nullptr) return;
+    VoidGameInstance->GlobalMusicComp->FadeOut(1.f, 0.f);
+}
+
+void UVoidBlueprintFunctionLibrary::RecordStartTime(UObject* WorldContextObject)
+{
+    if (WorldContextObject == nullptr) return;
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr) return;
+    VoidGameInstance->StartTime = FDateTime::Now();
+    if (UWorld* World = WorldContextObject->GetWorld())
+    {
+        VoidGameInstance->GameStartTime = FPlatformTime::Seconds();
+    }
+}
+
+void UVoidBlueprintFunctionLibrary::SavePlayHistory(UObject* WorldContextObject, const UAbilitySystemComponent* ASC, ECharacterClass KilledByCharacterClass, ACharacter* Player)
+{
+    if (WorldContextObject == nullptr || ASC == nullptr || Player == nullptr) return;
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr) return;
+
+    UWorld* World = WorldContextObject->GetWorld();
+    if (World == nullptr) return;
+
+    ICombatInterface* CombatInterface = Cast<ICombatInterface>(Player);
+    if (CombatInterface == nullptr) return;
+
+    const UVoidAbilitySystemComponent* VoidASC = Cast<UVoidAbilitySystemComponent>(ASC);
+    if (VoidASC == nullptr) return;
+
+    FPlayHistory HistoryData;
+    HistoryData.StartTime = VoidGameInstance->StartTime;
+    HistoryData.PlayDuration = FPlatformTime::Seconds() - VoidGameInstance->GameStartTime;
+    HistoryData.LastReachedLevel = VoidGameInstance->LastReachedLevel;
+    HistoryData.PlayerLevel = CombatInterface->GetPlayerLevel();
+    HistoryData.CharacterClass = KilledByCharacterClass;
+
+    for (const FAttributeEffectActors& Actor : VoidASC->PickedupActors)
+    {
+        HistoryData.PickupActors.AddUnique(Actor);
+    }
+    for (const FGameplayAbilitySpec& AbilitySpec : VoidASC->GetActivatableAbilities())
+    {
+
+        const UGameplayAbility* Ability = Cast<UGameplayAbility>(AbilitySpec.Ability);
+        if (Ability && Ability->AbilityTags.Num() > 0)
+        {
+            HistoryData.PlayerAbilityTag.AddTag(Ability->AbilityTags.First());
+        }
+    }
+
+    const FString SlotName = TEXT("HistorySlot");
+    const int32 UserIndex = 0;
+
+    UVoidSaveGame* SaveObj = nullptr;
+
+    if (UGameplayStatics::DoesSaveGameExist(SlotName, UserIndex))
+    {
+        SaveObj = Cast<UVoidSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
+    }
+
+    if (!SaveObj)
+    {
+        SaveObj = Cast<UVoidSaveGame>(UGameplayStatics::CreateSaveGameObject(UVoidSaveGame::StaticClass()));
+    }
+
+    SaveObj->HistoryList.Add(HistoryData);
+
+    UGameplayStatics::SaveGameToSlot(SaveObj, SlotName, UserIndex);
+
+}
+
+int32 UVoidBlueprintFunctionLibrary::LoadAllPlayHistory(UObject* WorldContextObject, TArray<FPlayHistory>& OutHistoryList)
+{
+    OutHistoryList.Empty();
+    if (!WorldContextObject) return 0;
+
+    const FString SlotName = TEXT("HistorySlot");
+    const int32 UserIndex = 0;
+
+    if (!UGameplayStatics::DoesSaveGameExist(SlotName, UserIndex))
+    {
+        return 0;
+    }
+
+    UVoidSaveGame* SaveObj = Cast<UVoidSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
+    if (!SaveObj)
+    {
+        return 0;
+    }
+
+    OutHistoryList = SaveObj->HistoryList;
+    return SaveObj->HistoryList.Num();
+}
+
+FText UVoidBlueprintFunctionLibrary::DateTimeToText(const FDateTime& DateTime)
+{
+    const FString Formatted = DateTime.ToString(TEXT("%Y-%m-%d %H:%M:%S"));
+    return FText::FromString(Formatted);
+}
+
+FText UVoidBlueprintFunctionLibrary::FormatSecondsToText(float Seconds)
+{
+    Seconds = FMath::Max(0.f, Seconds);
+
+    const int32 TotalSeconds = FMath::FloorToInt(Seconds);
+
+    const int32 Minutes = TotalSeconds / 60;
+    const int32 Sec = TotalSeconds % 60;
+
+    const FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Sec);
+
+    return FText::FromString(TimeString);
+}
+
+void UVoidBlueprintFunctionLibrary::SavePlayerStartupAbilities(UObject* WorldContextObject, const FGameplayTag AbilityTag, const FGameplayTag InputTag)
+{
+    if (WorldContextObject == nullptr) return;
+    UVoidGameInstance* VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (VoidGameInstance == nullptr) return;
+    if (InputTag.MatchesTagExact(FVoidGameplayTags::Get().Input_Skill01))
+    {
+        VoidGameInstance->WeaponTag = FVoidGameplayTags::Get().AbilityTagToWeapon.FindChecked(AbilityTag);
+        return;
+    }
+    VoidGameInstance->AbilitiesTag.AddTag(AbilityTag);
 }
 
 

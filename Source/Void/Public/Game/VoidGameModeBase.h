@@ -75,6 +75,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Spawn")
 	int32 KilledEnemyCount = 0;
 
+
 private:
 
 	int32 MaxKilledEnemyCount;
@@ -92,6 +93,6 @@ private:
 	void OnEnemyKilled(AActor* EnemyActor);
 
 	void TrySpawnEnemies();
-	AEnemySpawnPoint* GetRandomAvailableSpawnPoint();
+	AEnemySpawnPoint* GetRandomAvailableSpawnPoint(int32 PointNum);
 	TSubclassOf<AVoidEnemy> GetRandomEnemyClassFromData();
 };

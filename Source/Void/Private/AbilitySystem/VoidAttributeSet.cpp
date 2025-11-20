@@ -101,12 +101,15 @@ void UVoidAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallba
 					{
 						ECharacterClass EnemyClass = IEnemyInterface::Execute_GetCharacterClass(Props.SourceCharacter);
 						OnPlayerDead.ExecuteIfBound(EnemyClass);
+						UVoidBlueprintFunctionLibrary::SavePlayHistory(this, Props.TargetASC, EnemyClass, Props.TargetCharacter);
 					}
 					else
 					{
 						OnPlayerDead.ExecuteIfBound(ECharacterClass::Unknown);
+						UVoidBlueprintFunctionLibrary::SavePlayHistory(this, Props.TargetASC, ECharacterClass::Unknown, Props.TargetCharacter);
 					}
 					UVoidBlueprintFunctionLibrary::BroadcastAbilityInfoOnPLayerDead(Props.TargetASC);
+					
 				}
 
 				ICombatInterface* CombatInterface = Cast<ICombatInterface>(Props.TargetAvatarActor);

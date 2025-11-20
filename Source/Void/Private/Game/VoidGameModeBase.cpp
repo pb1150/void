@@ -33,7 +33,6 @@ void AVoidGameModeBase::BeginPlay()
 	CurrentAbilityEffectItemNum = 0;
 	KilledEnemyCount = 0;
 	
-
 	if (VoidGameInstance = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(this)))
 	{
 		VoidGameInstance->HideLoadingScreen();
@@ -65,7 +64,7 @@ void AVoidGameModeBase::BeginPlay()
 			{
 				if (AEnemySpawnPoint* SpawnPoint = Cast<AEnemySpawnPoint>(Actor))
 				{
-					AllSpawnPoints.Add(SpawnPoint);
+					AllSpawnPoints.AddUnique(SpawnPoint);
 				}
 			}
 
@@ -80,7 +79,6 @@ void AVoidGameModeBase::TrySpawnEnemies()
 {
 	if (!CharacterClassInfo) return;
 
-
 	if (KilledEnemyCount >= MaxKilledEnemyCount)
 	{
 		if (!Transmitter || !TransmitterClass) return;
@@ -88,11 +86,14 @@ void AVoidGameModeBase::TrySpawnEnemies()
 		FVector SpawnLocation = Transmitter->GetActorLocation();
 		FRotator SpawnRotation = Transmitter->GetActorRotation();
 		GetWorld()->SpawnActor<AActor>(TransmitterClass, SpawnLocation, SpawnRotation);
+		UGameplayStatics::PlaySound2D(this, VoidGameInstance->LevelDataAsset->LevelDefaultList[VoidGameInstance->CurrentLevelIndex].EndSound);
 		return;
 	}
 
-	int32 Missing = MaxValidEnemyCount - CurrentEnemyCount;
-	if (Missing <= 0) return;
+	int32 MaxEnemyCount = VoidGameInstance->GetTotalRuntimeToInt() + MaxValidEnemyCount;
+	UE_LOG(LogTemp, Warning, TEXT("Int:%d"), VoidGameInstance->GetTotalRuntimeToInt());
+	int32 Missing = MaxEnemyCount - CurrentEnemyCount;
+ 	if (Missing <= 0) return;
 
 	int32 EnemyLevel = 1;
 	if (PlayerInterface && !ICombatInterface::Execute_IsDead(Player))
@@ -111,7 +112,7 @@ void AVoidGameModeBase::TrySpawnEnemies()
 	
 	for (int32 i = 0; i < Missing; ++i)
 	{
-		AEnemySpawnPoint* SpawnPoint = GetRandomAvailableSpawnPoint();
+		AEnemySpawnPoint* SpawnPoint = GetRandomAvailableSpawnPoint(Missing);
 		if (!SpawnPoint) break;
 
 		TSubclassOf<AVoidEnemy> EnemyClass = GetRandomEnemyClassFromData();
@@ -136,39 +137,27 @@ void AVoidGameModeBase::TrySpawnEnemies()
 	AvailableSpawnPoints.Empty();
 }
 
-AEnemySpawnPoint* AVoidGameModeBase::GetRandomAvailableSpawnPoint()
+AEnemySpawnPoint* AVoidGameModeBase::GetRandomAvailableSpawnPoint(int32 PointNum)
 {
 	if (!Player) return nullptr;
 	const FVector PlayerLoc = Player->GetActorLocation();
 
-	if (AvailableSpawnPoints.IsEmpty())
+	int32 LoopCount = 1;
+
+	while (AvailableSpawnPoints.Num() < PointNum && LoopCount <= 3)
 	{
 		for (AEnemySpawnPoint* Point : AllSpawnPoints)
 		{
 			if (!Point) continue;
 
-			const float Distance = FVector::Dist(Point->GetActorLocation(), PlayerLoc);
-			if (Distance <= ValidSpawnRadius)
+			const float DistSq = FVector::DistSquared(Point->GetActorLocation(), PlayerLoc);
+			const float ValidDistSq = FMath::Square(ValidSpawnRadius * LoopCount);
+			if (DistSq <= ValidDistSq)
 			{
-				AvailableSpawnPoints.Add(Point);
+				AvailableSpawnPoints.AddUnique(Point);
 			}
 		}
-
-		if (AvailableSpawnPoints.Num() == 0)
-		{
-			for (AEnemySpawnPoint* Point : AllSpawnPoints)
-			{
-				if (Point)
-				{
-					AvailableSpawnPoints.Add(Point);
-				}
-			}
-		}
-	}
-
-	if (AvailableSpawnPoints.Num() == 0)
-	{
-		return nullptr;
+		LoopCount++;
 	}
 
 	int32 Index = FMath::RandRange(0, AvailableSpawnPoints.Num() - 1);

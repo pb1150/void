@@ -103,7 +103,7 @@ public:
 	FGameplayTag Effect_HitReact;
 
 	TMap<FGameplayTag, FGameplayTag> WeaponTagtoCue;
-
+	TMap<FGameplayTag, FGameplayTag> AbilityTagToWeapon;
 
 protected:
 

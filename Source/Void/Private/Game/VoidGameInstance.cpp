@@ -3,6 +3,7 @@
 
 #include "Game/VoidGameInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
 
 UVoidGameInstance::UVoidGameInstance()
 {
@@ -11,28 +12,37 @@ UVoidGameInstance::UVoidGameInstance()
 
 int32 UVoidGameInstance::GetTotalRuntimeToInt() const
 {
-	UWorld* World = GetWorld();
-	if (!World) return 0;
+	if (GameStartTime <= 0.f)
+	{
+		return 0;
+	}
 
-	float Delta = UGameplayStatics::GetRealTimeSeconds(World) - GameStartTime;
+	const double Now = FPlatformTime::Seconds();
+	const double Delta = Now - GameStartTime;
+	UE_LOG(LogTemp, Warning, TEXT("NowSeconds:%f"), Now);
+	UE_LOG(LogTemp, Warning, TEXT("GameStartTime:%f"), GameStartTime);
 
-	return static_cast<int32>(Delta / 60.f); 
+	const int32 Minutes = FMath::FloorToInt((float)Delta / 60.f);
+	return FMath::Max(0, Minutes);
 }
-
 
 void UVoidGameInstance::Init()
 {
 	Super::Init();
 	CurrentLevelIndex = 0;
-	GameStartTime = UGameplayStatics::GetRealTimeSeconds(GetWorld());
+	LastReachedLevel = 0;
 }
 
 void UVoidGameInstance::OnVoidLevelLoaded()
 {
 	const FLevelDefaultInfo& LevelInfo = LevelDataAsset->LevelDefaultList[CurrentLevelIndex];
+	LastReachedLevel++;
+	if (CurrentLevelIndex == 0)
+	{
+		LastReachedLevel = 0;
+	}
 	if (UWorld* LoadedWorld = LevelInfo.LevelRef.Get())
 	{
-		CurrentLevelType = LevelDataAsset->LevelDefaultList[CurrentLevelIndex].LevelType;
 		FString LevelName = LoadedWorld->GetName();
 		UGameplayStatics::OpenLevel(this, FName(*LevelName));
 	}

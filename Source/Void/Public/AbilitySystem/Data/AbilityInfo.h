@@ -14,6 +14,11 @@ struct FVoidAbilityInfo
 {
 	GENERATED_BODY()
 
+	FORCEINLINE bool operator==(const FVoidAbilityInfo& Other) const
+	{
+		return AbilityTag == Other.AbilityTag;  
+	}
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AbilityInfo")
 	TSubclassOf<UGameplayAbility> AbilityClass;
 

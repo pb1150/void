@@ -9,6 +9,7 @@
 class UInputMappingContext;
 class UInputAction;
 class UCameraComponent;
+class UChooseMenuWidgetController;
 struct FInputActionValue;
 
 /**
@@ -22,9 +23,17 @@ class VOID_API AVoidMainMenuController : public APlayerController
 public:
 	AVoidMainMenuController();
 
+    UChooseMenuWidgetController* GetChooseMenuWidgetController();
+
 protected:
 	virtual void BeginPlay() override;
     virtual void Tick(float DeltaSeconds) override;
+
+    UPROPERTY()
+    TObjectPtr<UChooseMenuWidgetController> ChooseMenuWidgetController = nullptr;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UChooseMenuWidgetController> ChooseMenuWidgetControllerClass;
 
 private:
     UPROPERTY(EditAnywhere, Category = "Camera")

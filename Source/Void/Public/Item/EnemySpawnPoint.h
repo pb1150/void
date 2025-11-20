@@ -14,12 +14,6 @@ class VOID_API AEnemySpawnPoint : public AActor
 public:	
 	AEnemySpawnPoint();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawn")
-	bool bIsOccupied = false;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawn")
-	float SpawnRadius = 100.f;
-
 protected:
 
 	virtual void BeginPlay() override;

@@ -32,6 +32,7 @@ AVoidCharacter::AVoidCharacter()
 	GetMesh()->CastShadow = true;
 	GetMesh()->SetupAttachment(GetCapsuleComponent());
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
+	GetMesh()->CastShadow = false;
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetMesh(), TEXT("neck_01")); 
@@ -176,6 +177,7 @@ void AVoidCharacter::InitAbilityActorInfo()
 void AVoidCharacter::TempSaveCharacterProgress_Implementation()
 {
 	UVoidBlueprintFunctionLibrary::TempSaveCharacterProgress(this, GetPlayerState(), AbilitySystemComponent, AttributeSet);
+	UVoidBlueprintFunctionLibrary::StopGlobalMusic(this);
 }
 
 USceneComponent* AVoidCharacter::GetCableTargetComponent_Implementation()
@@ -198,7 +200,10 @@ void AVoidCharacter::LoadProgress()
 	if (VoidGameInstance->IsInit)
 	{
 		InitializeDefaultAttributes();
-		VoidASC->AddCharacterAbilities(StartupAbilities);
+		HeldWeaponTag = VoidGameInstance->WeaponTag;
+		TArray<TSubclassOf<UGameplayAbility>> OwnedAbilities;
+		UVoidBlueprintFunctionLibrary::LoadCharacterAbilties(this, OwnedAbilities);
+		VoidASC->AddCharacterAbilities(OwnedAbilities);
 	}
 	else
 	{

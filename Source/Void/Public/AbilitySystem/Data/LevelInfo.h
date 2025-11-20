@@ -6,12 +6,6 @@
 #include "Engine/DataAsset.h"
 #include "LevelInfo.generated.h"
 
-UENUM(BlueprintType)
-enum class ELevelType : uint8
-{
-	Moon UMETA(DisplayName = "Moon")
-};
-
 
 USTRUCT(BlueprintType)
 struct FLevelDefaultInfo
@@ -28,7 +22,13 @@ struct FLevelDefaultInfo
 	int32 MaxKilledEnemyCount = 100.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LevelInfo")
-	ELevelType LevelType;
+	TObjectPtr<USoundBase> StartSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LevelInfo")
+	TObjectPtr<USoundBase> EndSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LevelInfo")
+	TArray<TObjectPtr<USoundBase>> CycleSound;
 };
 
 

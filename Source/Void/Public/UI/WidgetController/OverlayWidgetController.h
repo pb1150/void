@@ -7,6 +7,7 @@
 #include "AbilitySystem/Data/AbilityInfo.h"
 #include "GameplayTagContainer.h"
 #include "AbilitySystem/Data/AttributeEffectActorsInfo.h"
+#include "AbilitySystem/Data/LevelInfo.h"
 #include "OverlayWidgetController.generated.h"
 
 class UVoidUserWidget;
@@ -59,6 +60,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAbilityChangedSignature, FVoidAbili
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangeDetailsSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementChangedSignature, bool, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDieSignature, const FPlayerDeadData&, Data);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShowLevelInfoSignature, FLevelDefaultInfo, LevelInfo);
+
 
 /**
  * 
@@ -110,6 +113,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Message")
 	FOnPlayerDieSignature OnPlayerDeadDelegate;
+
+	UPROPERTY(BlueprintAssignable, Category = "Message")
+	FOnShowLevelInfoSignature OnShowLevelInfoDelegate;
 
 protected:
 

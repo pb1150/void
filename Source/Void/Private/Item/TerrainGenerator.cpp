@@ -23,10 +23,7 @@ void ATerrainGenerator::BeginPlay()
 {
     Super::BeginPlay();
     UVoidGameInstance* VoidGI = Cast<UVoidGameInstance>(UGameplayStatics::GetGameInstance(this));
-    if (VoidGI)
-    {
-        LevelType = VoidGI->CurrentLevelType;
-    }
+
 
     Generate();
 }

@@ -22,7 +22,6 @@ void UDetailsWidgetController::BroadcastInitialValues()
 	UVoidAbilitySystemComponent* VoidASC = CastChecked<UVoidAbilitySystemComponent>(AbilitySystemComponent);
 	if (AS == nullptr || VoidASC == nullptr) return;
 
-
 	for (TTuple<FGameplayTag, FGameplayAttribute>& Pair : AS->TagstoAttributes)
 	{
 		FVoidAttributeInfo Info = AttributeInfo->FindAttributeInfoByTag(Pair.Key);

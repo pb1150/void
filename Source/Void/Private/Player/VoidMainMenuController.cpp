@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/WidgetController/ChooseMenuWidgetController.h"
 
 AVoidMainMenuController::AVoidMainMenuController()
 {
@@ -42,6 +43,16 @@ void AVoidMainMenuController::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	UpdateCameraRotationFromMouse(DeltaSeconds);
+}
+
+UChooseMenuWidgetController* AVoidMainMenuController::GetChooseMenuWidgetController()
+{
+	if (!ChooseMenuWidgetController)
+	{
+		ChooseMenuWidgetController = NewObject<UChooseMenuWidgetController>(this, ChooseMenuWidgetControllerClass);
+	}
+
+	return ChooseMenuWidgetController;
 }
 
 

@@ -57,7 +57,6 @@ private:
     UPROPERTY()
     UProceduralMeshComponent* ProcMesh;
 
-    ELevelType LevelType;
 
     TArray<FVector> Vertices;
     TArray<int32>  Triangles;

@@ -99,5 +99,8 @@ void FVoidGameplayTags::InitializeNativeGameplayTags()
 	GameplayTags.WeaponTagtoCue.Add(GameplayTags.Weapon_Melee_BlueSword, GameplayTags.GameplayCue_BlueSword);
 	GameplayTags.WeaponTagtoCue.Add(GameplayTags.Weapon_Range_Gun, GameplayTags.GameplayCue_Gun);
 	
+	GameplayTags.AbilityTagToWeapon.Add(GameplayTags.Ability_BaseBall, GameplayTags.Weapon_Melee_BaseballBat);
+	GameplayTags.AbilityTagToWeapon.Add(GameplayTags.Ability_BlueSword, GameplayTags.Weapon_Melee_BlueSword);
+	GameplayTags.AbilityTagToWeapon.Add(GameplayTags.Ability_Rifle, GameplayTags.Weapon_Range_Gun);
 
 }
